@@ -27,7 +27,7 @@ default_config = {
     "target_channel": "",
     "api_id": "29169450",  # Your API ID
     "api_hash": "5cbe63ac7df6f9d036fb59c3587c5216",  # Your API Hash
-    "bot_token": "YOUR_BOT_TOKEN"  # Your Bot Token
+    "bot_token": "7781239916:AAGxJTjNwlW_8ssksZKNZBEBj3_x-P98t8k"  # Your Bot Token
 }
 
 # Update default config with saved config (if any)

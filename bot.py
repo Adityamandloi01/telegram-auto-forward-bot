@@ -1,94 +1,79 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
-import json
-import os
 
-# Define the path to store configuration
-config_file = 'bot_config.json'
+# Bot credentials
+API_ID = 29169450
+API_HASH = "5cbe63ac7df6f9d036fb59c3587c5216"
+BOT_TOKEN = "7781239916:AAGxJTjNwlW_8ssksZKNZBEBj3_x-P98t8k"
 
-# Function to load configuration from a file
-def load_config():
-    if os.path.exists(config_file):
-        with open(config_file, 'r') as f:
-            return json.load(f)
-    return {}
+# Initialize the bot
+app = Client("auto_forward_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Function to save configuration to a file
-def save_config(config):
-    with open(config_file, 'w') as f:
-        json.dump(config, f)
+# Variables to store source and target channels (stored dynamically)
+source_channel = None
+target_channel = None
 
-# Load the initial config (empty if not set)
-config = load_config()
+@app.on_message(filters.command("start") & filters.private)
+async def start_command(client, message: Message):
+    await message.reply(
+        "👋 Welcome to the Auto Forward Bot!\n\n"
+        "Use the following commands to set up:\n"
+        "1️⃣ `/setsource <channel_username or ID>` - Set the source channel.\n"
+        "2️⃣ `/getsource` - Get the current source channel.\n"
+        "3️⃣ `/settarget <channel_username or ID>` - Set the target channel.\n"
+        "4️⃣ `/gettarget` - Get the current target channel.\n\n"
+        "Once configured, messages from the source channel will be automatically forwarded to the target channel!"
+    )
 
-# Default config if not set by user
-default_config = {
-    "source_channel": "",
-    "target_channel": "",
-    "api_id": "29169450",  # Your API ID
-    "api_hash": "5cbe63ac7df6f9d036fb59c3587c5216",  # Your API Hash
-    "bot_token": "7781239916:AAGxJTjNwlW_8ssksZKNZBEBj3_x-P98t8k"  # Your Bot Token
-}
-
-# Update default config with saved config (if any)
-config = {**default_config, **config}
-
-# Create a Pyrogram Client
-app = Client("forward_bot", api_id=config["api_id"], api_hash=config["api_hash"], bot_token=config["bot_token"])
-
-# Command to set the source channel
-@app.on_message(filters.command("set_source_channel"))
-async def set_source_channel(client: Client, message: Message):
-    channel_username = message.text.split(" ", 1)[1] if len(message.text.split(" ", 1)) > 1 else None
-    if channel_username:
-        config["source_channel"] = channel_username
-        save_config(config)
-        await message.reply(f"Source channel updated to {channel_username}")
-    else:
-        await message.reply("Please provide the channel username. Example: /set_source_channel @your_source_channel")
-
-# Command to set the target channel
-@app.on_message(filters.command("set_target_channel"))
-async def set_target_channel(client: Client, message: Message):
-    channel_username = message.text.split(" ", 1)[1] if len(message.text.split(" ", 1)) > 1 else None
-    if channel_username:
-        config["target_channel"] = channel_username
-        save_config(config)
-        await message.reply(f"Target channel updated to {channel_username}")
-    else:
-        await message.reply("Please provide the channel username. Example: /set_target_channel @your_target_channel")
-
-# Command to set the bot token (for future updates if needed)
-@app.on_message(filters.command("set_bot_token"))
-async def set_bot_token(client: Client, message: Message):
-    bot_token = message.text.split(" ", 1)[1] if len(message.text.split(" ", 1)) > 1 else None
-    if bot_token:
-        config["bot_token"] = bot_token
-        save_config(config)
-        await message.reply(f"Bot token updated successfully.")
-    else:
-        await message.reply("Please provide the bot token. Example: /set_bot_token YOUR_BOT_TOKEN")
-
-# Command to start the bot (check current settings)
-@app.on_message(filters.command("start"))
-async def start(client: Client, message: Message):
-    source_channel = config["source_channel"]
-    target_channel = config["target_channel"]
-    
-    if not source_channel or not target_channel:
-        await message.reply("Please set both the source and target channels first. Use /set_source_channel and /set_target_channel.")
-    else:
-        await message.reply(f"Bot started. Forwarding from {source_channel} to {target_channel}.")
-
-# Function to handle the message forwarding from the source channel to the target channel
-@app.on_message(filters.channel & filters.chat(lambda message: message.chat.username == config["source_channel"]))
-async def forward_message(client, message):
+@app.on_message(filters.command("setsource") & filters.private)
+async def set_source(client, message: Message):
+    global source_channel
     try:
-        if config["target_channel"]:
-            await client.forward_messages(config["target_channel"], message.chat.id, message.message_id)
-            print(f"Message forwarded to {config['target_channel']}")
-    except Exception as e:
-        print(f"Error occurred: {e}")
+        # Extract source channel from the command
+        source_channel = message.text.split(" ", 1)[1]
+        await message.reply(f"✅ Source channel set to: `{source_channel}`")
+    except IndexError:
+        await message.reply("❌ Please provide a valid channel username or ID. Example: `/setsource @sourcechannel`")
 
-# Run the bot
-app.run()
+@app.on_message(filters.command("getsource") & filters.private)
+async def get_source(client, message: Message):
+    global source_channel
+    if source_channel:
+        await message.reply(f"📤 Current source channel: `{source_channel}`")
+    else:
+        await message.reply("❌ No source channel set. Use `/setsource` to configure one.")
+
+@app.on_message(filters.command("settarget") & filters.private)
+async def set_target(client, message: Message):
+    global target_channel
+    try:
+        # Extract target channel from the command
+        target_channel = message.text.split(" ", 1)[1]
+        await message.reply(f"✅ Target channel set to: `{target_channel}`")
+    except IndexError:
+        await message.reply("❌ Please provide a valid channel username or ID. Example: `/settarget @targetchannel`")
+
+@app.on_message(filters.command("gettarget") & filters.private)
+async def get_target(client, message: Message):
+    global target_channel
+    if target_channel:
+        await message.reply(f"🎯 Current target channel: `{target_channel}`")
+    else:
+        await message.reply("❌ No target channel set. Use `/settarget` to configure one.")
+
+@app.on_message(filters.chat(source_channel))
+async def forward_message(client, message: Message):
+    global target_channel
+    if not target_channel:
+        print("❌ Target channel not set. Use /settarget to configure it.")
+        return
+
+    try:
+        # Forward message from source to target channel
+        await message.forward(target_channel)
+        print(f"✅ Forwarded message to {target_channel}: {message.text}")
+    except Exception as e:
+        print(f"❌ Error while forwarding message: {e}")
+
+if __name__ == "__main__":
+    app.run()
